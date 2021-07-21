@@ -9,7 +9,7 @@
 ## 使用說明
 ### 選項一、直接下載[最新版本執行檔](https://github.com/andyChuang/Mabinogi-2021-summer-vote-bot/releases/tag/1.0.0)
 1. 下載Mabinogi-2021-summer-vote.zip並解壓縮
-2. 同目錄下建立`account.json`，格式如下：
+2. 在同Mabinogi-2021-summer-vote資料夾內建立`account.json`，格式如下：
 ```
 [
 {
