@@ -11,6 +11,7 @@ import utils
 import platform
 
 MABINOGI_URL = "https://event.beanfun.com/mabinogi/E20210715/Index.aspx"
+VOTE_AREA_URL = "https://event.beanfun.com/mabinogi/E20210715/Artwork.aspx?Area=%s"
 
 def main(cd_time):
     driver_path = get_chrome_driver()
@@ -20,32 +21,61 @@ def main(cd_time):
         start_new_session(driver)
         login(driver, user)
 
-        for category_idx in range(0, 6):
-            vote(driver, category_idx)
+        for area_idx in range(1, 7):
+            jump_to_area_page(driver, area_idx)
+            vote(driver, area_idx)
+
         stop_session(driver)
         time.sleep(cd_time)
 
-def vote(driver, category_idx):
-    driver.execute_script("arguments[0].click();", get_vote_category(driver, category_idx))
+def jump_to_area_page(driver, area_idx):
+    driver.get(VOTE_AREA_URL % str(area_idx))
+    time.sleep(1)
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CLASS_NAME, "artwork-box__img"))
     )
 
-    for i in range(0, 3):
-        candidate_btns = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, f"a[class=\"artwork-box\"][area=\"{category_idx + 1}\"]"))
-        )
+def find_page_link(driver, page_num):
+    page_links = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CLASS_NAME, "page-link"))
+    )
 
-        driver.execute_script("arguments[0].click();", candidate_btns[i])
+    for page_link in page_links:
+        if page_link.text == str(page_num):
+            return page_link
 
-        vote_btn = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "artworkPop-aside-btn__vote"))
-        )
-        vote_btn.click()
 
-        click_vote_exit_btn(driver)
-        time.sleep(1)
+def vote(driver, category_idx):
+    vote_targets = utils.load_json("vote.json")
 
+    page_count = len(WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CLASS_NAME, "page-link"))
+    )) - 4
+
+    for target_idx in range(0, len(vote_targets[str(category_idx)])):
+        for page_idx in range(1, page_count + 1):
+            find_page_link(driver, page_idx).click()
+            time.sleep(1)
+            if vote_target_candidates(driver, vote_targets[str(category_idx)][target_idx]) == True:
+                break
+
+
+def vote_target_candidates(driver, vote_target):
+    candidates = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CLASS_NAME, "artwork-box__text"))
+    )
+    for candidate in candidates:
+        if candidate.text == vote_target:
+            driver.execute_script("arguments[0].click();", candidate)
+            vote_btn = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "artworkPop-aside-btn__vote"))
+            )
+            vote_btn.click()
+
+            click_vote_exit_btn(driver)
+            time.sleep(1)
+            return True
+    return False
 
 def click_vote_exit_btn(driver):
     for j in range(10):
